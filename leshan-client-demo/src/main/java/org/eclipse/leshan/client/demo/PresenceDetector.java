@@ -29,7 +29,9 @@ import org.eclipse.leshan.core.util.NamedThreadFactory;
 //
 import javax.swing.JLabel;
 import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
 import javax.swing.JFrame;
+import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.WindowConstants;
 import java.awt.event.ActionListener;
@@ -58,19 +60,57 @@ public class PresenceDetector extends BaseInstanceEnabler {
     // 2IMN15:  TODO  :  fill in
     //
     // Add state variables for interaction with the user (GUI, CLI, sensor.)
+    private JLabel glPresence;
+    private JButton gbPresence;
+    private JFrame guiFrame;
     
     
     public PresenceDetector() {
-	//
-	// 2IMN15:  TODO  :  fill in
-	//
-	// Create an interface to enable presence detection
-	// Options:
-	// *  GUI     (see DemandResponse.java for an Swing/AWT example)
-	// *  external application
-	// *  ...
-	//
-	// Call "setPresence(bool)" to inform observers.
+        //
+        // 2IMN15:  TODO  :  fill in
+        //
+        // Create an interface to enable presence detection
+        // Options:
+        // *  GUI     (see DemandResponse.java for an Swing/AWT example)
+        // *  external application
+        // *  ...
+        //
+        // Call "setPresence(bool)" to inform observers.
+
+        //  Automatically generated GUI code.
+        guiFrame = new JFrame();
+        guiFrame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+        guiFrame.setTitle("Presence Detector");
+
+        glPresence = new JLabel();
+        gbPresence = new JButton();
+
+        // Total Allowed Peak Room Power
+        glPresence.setText("Presence: ");
+        gbPresence.setText(Boolean.toString(vPresence));
+
+        gbPresence.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                setPresence(!vPresence);
+                SwingUtilities.invokeLater(() -> {
+                    gbPresence.setText(Boolean.toString(vPresence));
+                });
+            }
+        });
+
+        // Create layout of labels, inputs and values.
+        GridLayout layout = new GridLayout(0,2,10,10);
+        guiFrame.getContentPane().setLayout(layout);
+        Container guiPane = guiFrame.getContentPane();
+        guiPane.add(glPresence);
+        guiPane.add(gbPresence);
+        guiFrame.pack();
+        // Code to make the frame visible.
+        java.awt.EventQueue.invokeLater(new Runnable() {
+            public void run() {
+                guiFrame.setVisible(true);
+            }
+        });
     }
 
     @Override
