@@ -91,12 +91,13 @@ public class Luminaire extends BaseInstanceEnabler {
         guiFrame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         guiFrame.setTitle("Luminaire");
 
+        // Initialize Labels
         glPower = new JLabel();
         gvPower = new JLabel();
         glDimLevel = new JLabel();
         gvDimLevel = new JLabel();
 
-        // Linke JLabels to corresponding value fields
+        // Link JLabels to corresponding value fields
         glPower.setText("Power Status: ");
         gvPower.setText(Boolean.toString(this.vPower));
         glDimLevel.setText("Dim Level: ");
@@ -183,6 +184,7 @@ public class Luminaire extends BaseInstanceEnabler {
 	    // RoomControl has change the power.
 	    // Update the UI.
 
+        // Set label to updated value
         SwingUtilities.invokeLater(() -> {
             gvPower.setText(Boolean.toString(vPower));
         });
@@ -214,6 +216,7 @@ public class Luminaire extends BaseInstanceEnabler {
 	    // RoomControl has change the dim level.
 	    // Update the UI.
 
+        // Set label to updated value
         SwingUtilities.invokeLater(() -> {
             gvDimLevel.setText(Long.toString(vDimLevel));
         });

@@ -41,9 +41,10 @@ public class RoomControl {
     // 2IMN15:  TODO  : fill in
     //
     // Declare variables to keep track of the state of the room.
-    //
-    private static int usedPeakPower;
-    private static int maxPeakPower;
+
+    private static int usedPeakPower; // Sum of peak powers of all luminaires
+    private static int maxPeakPower; // Maximum peak power given by demand response
+    // Peak power map, maps endpoint to peak power of a luminaire
     private static Map<String, Integer> luminairePowers = new HashMap<>();
     
     public static void Initialize(LeshanServer server)
@@ -55,6 +56,8 @@ public class RoomControl {
 	//
 	// Initialize the state variables.
 
+        // No clients have been registered, therefore
+        // these variables should be 0 at constructor
         usedPeakPower = 0;
         maxPeakPower = 0;
 
@@ -69,33 +72,52 @@ public class RoomControl {
     //
     // Support methods: 
 
-    private static void calculateAndDimLuminaires (int newPowerBudget) {
-
-        int newDimLevel = (int) ((double) newPowerBudget / (double) usedPeakPower * 100);
+    /**
+     * Given the current sum of peak power of all luminaires and the current power budget, 
+     * calculate the best dim level, and set all luminaires' dim level to that value. 
+     *
+     * @param powerBudget -> currently allowed peak power given by demand response
+     */
+    private static void calculateAndDimLuminaires (int powerBudget) {
+        // Calculate best dim level given budget and peak power
+        int newDimLevel = (int) ((double) powerBudget / (double) usedPeakPower * 100);
+        // Bound the dime level by 100. 0 bound not necessary unless faulty input
         newDimLevel = newDimLevel > 100 ? 100 : newDimLevel;
+        // For each registered luminaire, set its dim level to the new value
         for (String endPoint : luminairePowers.keySet()) {
             Registration reg = lwServer.getRegistrationService().getByEndpoint(endPoint);
             writeInteger(reg, Constants.LUMINAIRE_ID, 0, Constants.RES_DIM_LEVEL, newDimLevel);
         }
     }
 
+    /**
+     * Given the current sum of peak power of all luminaires and the current power budget, 
+     * calculate the best dim level, and set all luminaires' dim level to that value. 
+     *
+     * @param observation, a SingleObservation instanced linked to the observed object
+     * @param response, an ObserveResponse contraining update details from the observed object
+     * @return whether presence is detected, null if response not from the presence detector
+     */
     private static Boolean observedPresence (SingleObservation observation, 
         ObserveResponse response) 
     {
+        // Obtain path that identifies type of object observed
         LwM2mPath obsPath = observation.getPath();
+        // Check if the response came from the presence detector
         if ((obsPath.getObjectId() == Constants.PRESENCE_DETECTOR_ID) &&
         (obsPath.getResourceId() == Constants.RES_PRESENCE)) {
+            // Get response string
             String strValue = ((LwM2mResource)response.getContent()).getValue().toString();
             try {
+                // Convert response string to boolean denoting presence
                 boolean vPresence = Boolean.parseBoolean(strValue);
-
                 return vPresence;
             }
             catch (Exception e) {
                 System.out.println("Exception in reading presence state:" + e.getMessage());
             }
         }
-        return null;
+        return null; // Return null if response not from the presence detector
     }
 
     public static void handleRegistration(Registration registration)
@@ -112,13 +134,8 @@ public class RoomControl {
 	    //
 	    // Process the registration of a new Presence Detector.
 
-            boolean presenceState = Boolean.parseBoolean(readString(registration, 
-                    Constants.PRESENCE_DETECTOR_ID,
-                    0,
-                    Constants.RES_PRESENCE));
-            System.out.println("Presence State is: " + presenceState);
-
-            // Observe the presence state information for updates.
+            // Observe the presence state information for updates,
+            // Same as how the default code observes the demand response object.
             try {
                 ObserveRequest obRequest =
                     new ObserveRequest(Constants.PRESENCE_DETECTOR_ID,
@@ -143,17 +160,20 @@ public class RoomControl {
 	    //
 	    // Process the registration of a new Luminaire.
 
+            // Get peak power of the registered luminaire
             int lumPeakPower = readInteger(registration, 
                     Constants.LUMINAIRE_ID,
                     0,
                     Constants.RES_PEAK_POWER);
-
+            // Add peak power to used Peak Power
             usedPeakPower += lumPeakPower;
+            // Add peak power to peak power map
             luminairePowers.put(registration.getEndpoint(), lumPeakPower);
+            // Adding a new luminaire must not break the budget
+            calculateAndDimLuminaires(maxPeakPower);
 
             System.out.println("Registered Luminaire with Peak Power: " + lumPeakPower);
 
-            calculateAndDimLuminaires(maxPeakPower);
         }
 
         if (supportedObject.get(Constants.DEMAND_RESPONSE_ID) != null) {
@@ -163,7 +183,9 @@ public class RoomControl {
 	    // on how handle a registration. 
 	    //
             int powerBudget = registerDemandResponse(registration);
+            // Track the power budget given by demand response
             maxPeakPower = powerBudget;
+            // Calculate appropriate dim level and dim the luminaires
             calculateAndDimLuminaires(maxPeakPower);
         }
 
@@ -178,8 +200,12 @@ public class RoomControl {
 	//
 	// The device identified by the given registration will
 	// disappear.  Update the state accordingly.
+
+        // Get peak power of de-registered luminair
         Integer freedPower = luminairePowers.get(registration.getEndpoint());
+        // Verify that a luminaire is deregistred
         if (freedPower != null) {
+            // Subtract from used peak power and remove luminair from peak power map
             usedPeakPower -= freedPower;
             luminairePowers.remove(registration.getEndpoint());
         }
@@ -200,15 +226,22 @@ public class RoomControl {
 	    //    registration.getEndpoint()
 	    //    observation.getPath()
 	    
+            // Reponse is from either presence detector or demand resopnse
             Boolean vPresence = observedPresence(observation, response);
             int newPowerBudget = observedDemandResponse(observation, response);
 
+            // If response is from presence detector
             if (vPresence != null && newPowerBudget == -1) {
+                // Set all luminaire's power status to the presense status
+                // Prenses: true -> Power: true
+                // Prenses: false -> Power: false
                 for (String endPoint : luminairePowers.keySet()) {
                     Registration reg = lwServer.getRegistrationService().getByEndpoint(endPoint);
                     writeBoolean(reg, Constants.LUMINAIRE_ID, 0, Constants.RES_POWER, vPresence);
                 }
+            // If response is from demand response
             } else if (vPresence == null && newPowerBudget != -1) {
+                // Calculate appropriate dim level and update all luminaires
                 calculateAndDimLuminaires(newPowerBudget);
             }
         }

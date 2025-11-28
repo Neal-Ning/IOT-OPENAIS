@@ -77,11 +77,12 @@ public class PresenceDetector extends BaseInstanceEnabler {
         //
         // Call "setPresence(bool)" to inform observers.
 
-        //  Automatically generated GUI code.
+        // Create a new window
         guiFrame = new JFrame();
         guiFrame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         guiFrame.setTitle("Presence Detector");
 
+        // Initialize label and button
         glPresence = new JLabel();
         gbPresence = new JButton();
 
@@ -89,6 +90,7 @@ public class PresenceDetector extends BaseInstanceEnabler {
         glPresence.setText("Presence: ");
         gbPresence.setText(Boolean.toString(vPresence));
 
+        // T flip flop to manually set presence status
         gbPresence.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 setPresence(!vPresence);
