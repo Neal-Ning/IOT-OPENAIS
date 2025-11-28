@@ -42,7 +42,8 @@ public class RoomControl {
     //
     // Declare variables to keep track of the state of the room.
     //
-    private static int vRoomPeakPower;
+    private static int usedPeakPower;
+    private static int maxPeakPower;
     private static Map<String, Integer> luminairePowers = new HashMap<>();
     
     public static void Initialize(LeshanServer server)
@@ -54,7 +55,8 @@ public class RoomControl {
 	//
 	// Initialize the state variables.
 
-        vRoomPeakPower = 0;
+        usedPeakPower = 0;
+        maxPeakPower = 0;
 
     }
 
@@ -69,7 +71,7 @@ public class RoomControl {
 
     private static void calculateAndDimLuminaires (int newPowerBudget) {
 
-        int newDimLevel = (int) ((double) newPowerBudget / (double) vRoomPeakPower * 100);
+        int newDimLevel = (int) ((double) newPowerBudget / (double) usedPeakPower * 100);
         newDimLevel = newDimLevel > 100 ? 100 : newDimLevel;
         for (String endPoint : luminairePowers.keySet()) {
             Registration reg = lwServer.getRegistrationService().getByEndpoint(endPoint);
@@ -146,10 +148,12 @@ public class RoomControl {
                     0,
                     Constants.RES_PEAK_POWER);
 
-            vRoomPeakPower += lumPeakPower;
+            usedPeakPower += lumPeakPower;
             luminairePowers.put(registration.getEndpoint(), lumPeakPower);
 
             System.out.println("Registered Luminaire with Peak Power: " + lumPeakPower);
+
+            calculateAndDimLuminaires(maxPeakPower);
         }
 
         if (supportedObject.get(Constants.DEMAND_RESPONSE_ID) != null) {
@@ -159,7 +163,8 @@ public class RoomControl {
 	    // on how handle a registration. 
 	    //
             int powerBudget = registerDemandResponse(registration);
-            calculateAndDimLuminaires(powerBudget);
+            maxPeakPower = powerBudget;
+            calculateAndDimLuminaires(maxPeakPower);
         }
 
 	//  2IMN15: don't forget to update the other luminaires.
@@ -175,7 +180,7 @@ public class RoomControl {
 	// disappear.  Update the state accordingly.
         Integer freedPower = luminairePowers.get(registration.getEndpoint());
         if (freedPower != null) {
-            vRoomPeakPower -= freedPower;
+            usedPeakPower -= freedPower;
             luminairePowers.remove(registration.getEndpoint());
         }
     }
