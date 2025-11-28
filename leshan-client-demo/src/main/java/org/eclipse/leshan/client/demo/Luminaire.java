@@ -27,6 +27,7 @@ import org.eclipse.leshan.core.util.NamedThreadFactory;
 
 import javax.swing.JLabel;
 import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
 import javax.swing.JFrame;
 import javax.swing.JComboBox;
 import javax.swing.WindowConstants;
@@ -68,16 +69,71 @@ public class Luminaire extends BaseInstanceEnabler {
     //
     // Add state variables for the user interface.
     
+    private JLabel glPower;
+    private JLabel glPeakPower;
+    private JLabel glType;
+    private JLabel glDimLevel;
+    private JLabel gvPower;
+    private JLabel gvPeakPower;
+    private JLabel gvType;
+    private JLabel gvDimLevel;
+    private JFrame guiFrame;
+    
     public Luminaire() {
-	//
-	// 2IMN15:  TODO  :  fill in
-	//
-	// Create an interface to display the luminaire state.
-	// Options:
-	// *  GUI     (see DemandResponse.java for an Swing/AWT example)
-	// *  external application
-	// *  ...
-	//
+        //
+        // 2IMN15:  TODO  :  fill in
+        //
+        // Create an interface to display the luminaire state.
+        // Options:
+        // *  GUI     (see DemandResponse.java for an Swing/AWT example)
+        // *  external application
+        // *  ...
+        //
+
+        // Create a new Window
+        guiFrame = new JFrame();
+        guiFrame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+        guiFrame.setTitle("Luminaire");
+
+        glPower = new JLabel();
+        glPeakPower = new JLabel();
+        glType = new JLabel();
+        glDimLevel = new JLabel();
+        gvPower = new JLabel();
+        gvPeakPower = new JLabel();
+        gvType = new JLabel();
+        gvDimLevel = new JLabel();
+
+        // Linke JLabels to corresponding value fields
+        glPower.setText("Power Status: ");
+        glPeakPower.setText("Peak Power: ");
+        glType.setText("Luminaire Type: ");
+        glDimLevel.setText("Dim Level: ");
+        gvPower.setText(Boolean.toString(this.vPower));
+        gvPeakPower.setText(Long.toString(this.vPeakPower));
+        gvType.setText(this.vType);
+        gvDimLevel.setText(Long.toString(this.vDimLevel));
+
+        // Create layout of labels, inputs and values.
+        GridLayout layout = new GridLayout(0, 2, 10, 10);
+        guiFrame.getContentPane().setLayout(layout);
+        Container guiPane = guiFrame.getContentPane();
+        guiPane.add(glPower);
+        guiPane.add(gvPower);
+        guiPane.add(glPeakPower);
+        guiPane.add(gvPeakPower);
+        guiPane.add(glType);
+        guiPane.add(gvType);
+        guiPane.add(glDimLevel);
+        guiPane.add(gvDimLevel);
+        guiFrame.pack();
+
+        // Code to make the frame visible.
+        java.awt.EventQueue.invokeLater(new Runnable() {
+            public void run() {
+                guiFrame.setVisible(true);
+            }
+        });
 
     }
 
@@ -142,10 +198,15 @@ public class Luminaire extends BaseInstanceEnabler {
 	    //
 	    // RoomControl has change the power.
 	    // Update the UI.
+
+        SwingUtilities.invokeLater(() -> {
+            gvPower.setText(Boolean.toString(vPower));
+        });
+
 	    fireResourceChange(RES_POWER);
 	}
     }
-    
+
     private synchronized void setType(String value) {
 	if (vType != value) {
 	    vType = value;
@@ -168,6 +229,11 @@ public class Luminaire extends BaseInstanceEnabler {
 	    //
 	    // RoomControl has change the dim level.
 	    // Update the UI.
+
+        SwingUtilities.invokeLater(() -> {
+            gvPower.setText(Long.toString(vDimLevel));
+        });
+
 	    fireResourceChange(RES_DIM_LEVEL);
 	}
     }
