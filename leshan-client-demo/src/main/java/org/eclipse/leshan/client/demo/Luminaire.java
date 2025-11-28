@@ -70,12 +70,8 @@ public class Luminaire extends BaseInstanceEnabler {
     // Add state variables for the user interface.
     
     private JLabel glPower;
-    private JLabel glPeakPower;
-    private JLabel glType;
-    private JLabel glDimLevel;
     private JLabel gvPower;
-    private JLabel gvPeakPower;
-    private JLabel gvType;
+    private JLabel glDimLevel;
     private JLabel gvDimLevel;
     private JFrame guiFrame;
     
@@ -96,22 +92,14 @@ public class Luminaire extends BaseInstanceEnabler {
         guiFrame.setTitle("Luminaire");
 
         glPower = new JLabel();
-        glPeakPower = new JLabel();
-        glType = new JLabel();
-        glDimLevel = new JLabel();
         gvPower = new JLabel();
-        gvPeakPower = new JLabel();
-        gvType = new JLabel();
+        glDimLevel = new JLabel();
         gvDimLevel = new JLabel();
 
         // Linke JLabels to corresponding value fields
         glPower.setText("Power Status: ");
-        glPeakPower.setText("Peak Power: ");
-        glType.setText("Luminaire Type: ");
-        glDimLevel.setText("Dim Level: ");
         gvPower.setText(Boolean.toString(this.vPower));
-        gvPeakPower.setText(Long.toString(this.vPeakPower));
-        gvType.setText(this.vType);
+        glDimLevel.setText("Dim Level: ");
         gvDimLevel.setText(Long.toString(this.vDimLevel));
 
         // Create layout of labels, inputs and values.
@@ -120,10 +108,6 @@ public class Luminaire extends BaseInstanceEnabler {
         Container guiPane = guiFrame.getContentPane();
         guiPane.add(glPower);
         guiPane.add(gvPower);
-        guiPane.add(glPeakPower);
-        guiPane.add(gvPeakPower);
-        guiPane.add(glType);
-        guiPane.add(gvType);
         guiPane.add(glDimLevel);
         guiPane.add(gvDimLevel);
         guiFrame.pack();
