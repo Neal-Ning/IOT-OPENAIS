@@ -9,6 +9,10 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+
+import javax.sound.sampled.AudioFileFormat.Type;
+import javax.swing.plaf.DimensionUIResource;
+
 import java.util.Set;
 import java.io.PrintWriter;
 
@@ -38,6 +42,8 @@ public class RoomControl {
     //
     // Declare variables to keep track of the state of the room.
     //
+    private static int vRoomPeakPower;
+    private static Map<String, Integer> luminairePowers = new HashMap<>();
     
     public static void Initialize(LeshanServer server)
     {
@@ -48,6 +54,8 @@ public class RoomControl {
 	//
 	// Initialize the state variables.
 
+        vRoomPeakPower = 0;
+
     }
 
     //
@@ -56,8 +64,38 @@ public class RoomControl {
     // * set the dim level of all luminaires.
     // * set the power flag of all luminaires.
     // * show the status of the room.
+    //
+    // Support methods: 
 
-    
+    private static void calculateAndDimLuminaires (int newPowerBudget) {
+
+        int newDimLevel = (int) ((double) newPowerBudget / (double) vRoomPeakPower * 100);
+        newDimLevel = newDimLevel > 100 ? 100 : newDimLevel;
+        for (String endPoint : luminairePowers.keySet()) {
+            Registration reg = lwServer.getRegistrationService().getByEndpoint(endPoint);
+            writeInteger(reg, Constants.LUMINAIRE_ID, 0, Constants.RES_DIM_LEVEL, newDimLevel);
+        }
+    }
+
+    private static Boolean observedPresence (SingleObservation observation, 
+        ObserveResponse response) 
+    {
+        LwM2mPath obsPath = observation.getPath();
+        if ((obsPath.getObjectId() == Constants.PRESENCE_DETECTOR_ID) &&
+        (obsPath.getResourceId() == Constants.RES_PRESENCE)) {
+            String strValue = ((LwM2mResource)response.getContent()).getValue().toString();
+            try {
+                boolean vPresence = Boolean.parseBoolean(strValue);
+
+                return vPresence;
+            }
+            catch (Exception e) {
+                System.out.println("Exception in reading presence state:" + e.getMessage());
+            }
+        }
+        return null;
+    }
+
     public static void handleRegistration(Registration registration)
     {
         // Check which objects are available.
@@ -71,6 +109,28 @@ public class RoomControl {
 	    // 2IMN15:  TODO  :  fill in
 	    //
 	    // Process the registration of a new Presence Detector.
+
+            boolean presenceState = Boolean.parseBoolean(readString(registration, 
+                    Constants.PRESENCE_DETECTOR_ID,
+                    0,
+                    Constants.RES_PRESENCE));
+            System.out.println("Presence State is: " + presenceState);
+
+            // Observe the presence state information for updates.
+            try {
+                ObserveRequest obRequest =
+                    new ObserveRequest(Constants.PRESENCE_DETECTOR_ID,
+                        0,
+                        Constants.RES_PRESENCE);
+                System.out.println(">>ObserveRequest for presence created << ");
+                ObserveResponse coResponse = lwServer.send(registration, obRequest, 1000);
+                System.out.println(">>ObserveRequest for presence sent << ");
+                if (coResponse == null) {
+                    System.out.println(">>ObserveRequest for presence null << ");
+                }
+            } catch (Exception e) {
+                System.out.println("Observe request for presence failed for Presence Detector.");
+            }
         }
 
         if (supportedObject.get(Constants.LUMINAIRE_ID) != null) {
@@ -80,6 +140,16 @@ public class RoomControl {
 	    // 2IMN15:  TODO  :  fill in
 	    //
 	    // Process the registration of a new Luminaire.
+
+            int lumPeakPower = readInteger(registration, 
+                    Constants.LUMINAIRE_ID,
+                    0,
+                    Constants.RES_PEAK_POWER);
+
+            vRoomPeakPower += lumPeakPower;
+            luminairePowers.put(registration.getEndpoint(), lumPeakPower);
+
+            System.out.println("Registered Luminaire with Peak Power: " + lumPeakPower);
         }
 
         if (supportedObject.get(Constants.DEMAND_RESPONSE_ID) != null) {
@@ -88,7 +158,8 @@ public class RoomControl {
 	    // The registerDemandResponse() method contains example code
 	    // on how handle a registration. 
 	    //
-	    int powerBudget = registerDemandResponse(registration);
+            int powerBudget = registerDemandResponse(registration);
+            calculateAndDimLuminaires(powerBudget);
         }
 
 	//  2IMN15: don't forget to update the other luminaires.
@@ -102,6 +173,11 @@ public class RoomControl {
 	//
 	// The device identified by the given registration will
 	// disappear.  Update the state accordingly.
+        Integer freedPower = luminairePowers.get(registration.getEndpoint());
+        if (freedPower != null) {
+            vRoomPeakPower -= freedPower;
+            luminairePowers.remove(registration.getEndpoint());
+        }
     }
     
     public static void handleObserveResponse(SingleObservation observation,
@@ -119,11 +195,17 @@ public class RoomControl {
 	    //    registration.getEndpoint()
 	    //    observation.getPath()
 	    
+            Boolean vPresence = observedPresence(observation, response);
+            int newPowerBudget = observedDemandResponse(observation, response);
 
-	    // For processing an update of the Demand Response object.
-	    // It contains some example code.
-	    int newPowerBudget = observedDemandResponse(observation, response);
-	    
+            if (vPresence != null && newPowerBudget == -1) {
+                for (String endPoint : luminairePowers.keySet()) {
+                    Registration reg = lwServer.getRegistrationService().getByEndpoint(endPoint);
+                    writeBoolean(reg, Constants.LUMINAIRE_ID, 0, Constants.RES_POWER, vPresence);
+                }
+            } else if (vPresence == null && newPowerBudget != -1) {
+                calculateAndDimLuminaires(newPowerBudget);
+            }
         }
     }
 

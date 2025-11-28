@@ -215,7 +215,7 @@ public class Luminaire extends BaseInstanceEnabler {
 	    // Update the UI.
 
         SwingUtilities.invokeLater(() -> {
-            gvPower.setText(Long.toString(vDimLevel));
+            gvDimLevel.setText(Long.toString(vDimLevel));
         });
 
 	    fireResourceChange(RES_DIM_LEVEL);
