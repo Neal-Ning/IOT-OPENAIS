@@ -101,7 +101,7 @@ public class Luminaire extends BaseInstanceEnabler {
         glPower.setText("Power Status: ");
         gvPower.setText(Boolean.toString(this.vPower));
         glDimLevel.setText("Dim Level: ");
-        gvDimLevel.setText(Long.toString(this.vDimLevel));
+        gvDimLevel.setText(Long.toString(this.vDimLevel) + "%");
 
         // Create layout of labels, inputs and values.
         GridLayout layout = new GridLayout(0, 2, 10, 10);
@@ -218,7 +218,7 @@ public class Luminaire extends BaseInstanceEnabler {
 
         // Set label to updated value
         SwingUtilities.invokeLater(() -> {
-            gvDimLevel.setText(Long.toString(vDimLevel));
+            gvDimLevel.setText(Long.toString(vDimLevel) + "%");
         });
 
 	    fireResourceChange(RES_DIM_LEVEL);
