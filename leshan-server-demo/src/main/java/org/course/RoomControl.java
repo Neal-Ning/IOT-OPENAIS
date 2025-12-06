@@ -161,18 +161,34 @@ public class RoomControl {
 	    // Process the registration of a new Luminaire.
 
             // Get peak power of the registered luminaire
-            int lumPeakPower = readInteger(registration, 
+            int lumPeakPower = readInteger(
+                    registration, 
                     Constants.LUMINAIRE_ID,
                     0,
                     Constants.RES_PEAK_POWER);
-            // Add peak power to used Peak Power
-            usedPeakPower += lumPeakPower;
-            // Add peak power to peak power map
-            luminairePowers.put(registration.getEndpoint(), lumPeakPower);
-            // Adding a new luminaire must not break the budget
-            calculateAndDimLuminaires(maxPeakPower);
 
-            System.out.println("Registered Luminaire with Peak Power: " + lumPeakPower);
+            // Get type of the registered luminaire
+            String lumType = readString(
+                    registration, 
+                    Constants.LUMINAIRE_ID,
+                    0,
+                    Constants.RES_TYPE);
+
+            // Ensure only allowed type of Luminaires are added
+            if (lumType.equals("LED") || lumType.equals("Halogen")) {
+                // Add peak power to used Peak Power
+                usedPeakPower += lumPeakPower;
+                // Add peak power to peak power map
+                luminairePowers.put(registration.getEndpoint(), lumPeakPower);
+                // Adding a new luminaire must not break the budget
+                calculateAndDimLuminaires(maxPeakPower);
+
+                System.out.println("Registered Luminaire with Peak Power: " + lumPeakPower);
+
+            // In case of unknown Luminaire type
+            } else {
+                System.out.println("Unidentified Luminaire type: " + lumType);
+            }
 
         }
 
